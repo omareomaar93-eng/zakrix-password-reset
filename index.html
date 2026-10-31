@@ -1,2 +1,159 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>استعادة كلمة مرور ZAKRIX</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f1f4f8;
+      margin: 0;
+      padding: 25px 15px;
+    }
+    .card {
+      max-width: 420px;
+      margin: 50px auto;
+      background: white;
+      padding: 25px;
+      border-radius: 14px;
+      box-shadow: 0 3px 15px #0001;
+    }
+    h2 { text-align: center; color: #183b63; }
+    p { line-height: 1.8; }
+    label { display: block; margin-top: 15px; }
+    input {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 13px;
+      margin-top: 7px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 20px;
+      background: #1769aa;
+      color: white;
+      border: 0;
+      border-radius: 8px;
+      font-size: 17px;
+    }
+    #message { margin-top: 18px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>ZAKRIX</h2>
+    <p>استعادة كلمة المرور</p>
 
-Add password reset page
+    <div id="formArea" hidden>
+      <label>كلمة المرور الجديدة</label>
+      <input id="password" type="password" minlength="6"
+        placeholder="أدخل كلمة المرور الجديدة">
+
+      <label>تأكيد كلمة المرور</label>
+      <input id="confirmPassword" type="password" minlength="6"
+        placeholder="أعد كتابة كلمة المرور">
+
+      <button id="saveButton">حفظ كلمة المرور الجديدة</button>
+    </div>
+
+    <p id="message">جارٍ التحقق من رابط الاستعادة...</p>
+  </div>
+
+  <script>
+    const SUPABASE_URL =
+      "https://mwropfslppudzuizlitj.supabase.co";
+
+    const SUPABASE_KEY =
+      "sb_publishable_p7sNS0DgGNMlFJGA1Uwrvw_1iPib2Xb";
+
+    const client = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY,
+      {
+        auth: {
+          detectSessionInUrl: true,
+          persistSession: true,
+          autoRefreshToken: true
+        }
+      }
+    );
+
+    const message = document.getElementById("message");
+    const formArea = document.getElementById("formArea");
+    const saveButton = document.getElementById("saveButton");
+
+    let recoveryReady = false;
+
+    function showRecoveryForm() {
+      recoveryReady = true;
+      formArea.hidden = false;
+      message.textContent = "أدخل كلمة المرور الجديدة مرتين.";
+    }
+
+    client.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" && session) {
+        showRecoveryForm();
+      }
+    });
+
+    async function checkRecoverySession() {
+      const { data, error } = await client.auth.getSession();
+
+      if (error) {
+        message.textContent = "تعذر التحقق من الرابط. اطلب رابط استعادة جديداً لاحقاً.";
+        return;
+      }
+
+      if (data.session && window.location.hash.includes("type=recovery")) {
+        showRecoveryForm();
+      } else if (!recoveryReady) {
+        message.textContent =
+          "افتح رابط استعادة كلمة المرور الذي وصلك عبر البريد الإلكتروني.";
+      }
+    }
+
+    checkRecoverySession();
+
+    saveButton.addEventListener("click", async () => {
+      if (!recoveryReady) return;
+
+      const password = document.getElementById("password").value;
+      const confirmPassword =
+        document.getElementById("confirmPassword").value;
+
+      if (password.length < 6) {
+        message.textContent = "كلمة المرور يجب أن تكون 6 أحرف على الأقل.";
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        message.textContent = "كلمتا المرور غير متطابقتين.";
+        return;
+      }
+
+      saveButton.disabled = true;
+      message.textContent = "جارٍ تحديث كلمة المرور...";
+
+      const { error } = await client.auth.updateUser({
+        password: password
+      });
+
+      if (error) {
+        message.textContent = "تعذر تحديث كلمة المرور: " + error.message;
+        saveButton.disabled = false;
+        return;
+      }
+
+      formArea.hidden = true;
+      message.textContent =
+        "تم تحديث كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول إلى ZAKRIX.";
+    });
+  </script>
+</body>
+</html>
